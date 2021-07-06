@@ -6,7 +6,9 @@ dotenv.config()
 
 describe('Comments API', () => {
   beforeAll(() => {
-    axios.defaults.baseURL = process.env.DM_BASE_URL + process.env.DM_API_ROOT
+    //axios.defaults.baseURL = process.env.DM_BASE_URL + process.env.DM_API_ROOT
+    axios.defaults.baseURL = process.env.DM_BASE_URL;
+    console.log("*************************** " + axios.defaults.baseURL)
     axios.defaults.headers.common['Content-Type'] = 'application/json'
     axios.defaults.validateStatus = function (status) {
       // Throw only if the status code is greater than or equal to 500

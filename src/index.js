@@ -15,7 +15,7 @@ dotenv.config()
 const apiRoot = process.env.DM_API_ROOT || ""
 
 const app = express()
-app.use(bodyParser.json())
+app.use(express.json())
 // TODO: figure out DNT compliance.
 app.use((_, res, next) => {
   res.set({ Tk: '!' })

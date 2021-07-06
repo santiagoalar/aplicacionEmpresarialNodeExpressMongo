@@ -1,60 +1,65 @@
-import isQuestionable from '../src/is-questionable'
-import review from './fixtures/moderation-api/review.json'
-import noReview from './fixtures/moderation-api/no-review.json'
-import noClassification from './fixtures/moderation-api/no-classification.json'
-import makeFakeComment from './fixtures/comment'
+import {
+  buildModerationApiCommand,
+  normalizeModerationApiResponse,
+  buildAkismetApiCommand
+} from '../src/is-questionable'
+//import isQuestionable from '../src/is-questionable'
+import review from './fixtures/moderation-api/review.json';
+import noReview from './fixtures/moderation-api/no-review.json';
+import noClassification from './fixtures/moderation-api/no-classification.json';
+import makeFakeComment from './fixtures/comment';
+import dotenv from 'dotenv'
+import qs from 'querystring'
+dotenv.config()
 
 describe('Is Questionable', () => {
-  // Content moderator API only allows 1 request per second.
-  afterEach(done => setTimeout(() => done(), 1100))
-  it('flags inappropriate content', async () => {
-    const comment = makeFakeComment({ text: review.OriginalText })
-    const result = await isQuestionable({
-      text: comment.text,
-      ip: comment.source.ip,
-      browser: comment.source.browser,
-      referrer: comment.source.referrer,
-      author: comment.author,
-      createdOn: comment.createdOn,
-      modifiedOn: comment.modifiedOn,
-      testOnly: true
-    })
-    expect(result).toBe(true)
+  it('builds a valid Moderator API request', () => {
+    const expected = {
+      method: 'post',
+      data: review.OriginalText,
+      params: { classify: 'true' },
+      headers: {
+        'Content-Type': 'text/html',
+        'Ocp-Apim-Subscription-Key': process.env.DM_MODERATOR_API_KEY
+      },
+      url: process.env.DM_MODERATOR_API_URL
+    }
+    expect(buildModerationApiCommand(review.OriginalText)).toEqual(expected)
   })
-  it('flags unintelligible content', async () => {
-    const comment = makeFakeComment({ text: noClassification.OriginalText })
-    const result = await isQuestionable({
-      text: comment.text,
-      ip: comment.source.ip,
-      browser: comment.source.browser,
-      referrer: comment.source.referrer,
-      author: comment.author,
-      createdOn: comment.createdOn,
-      modifiedOn: comment.modifiedOn,
-      testOnly: true
-    })
-    expect(result).toBe(true)
+  it('handles a review recommendation', () => {
+    expect(normalizeModerationApiResponse({ data: review })).toBe(true)
   })
-  it('accepts appropriate content', async () => {
-    const comment = makeFakeComment({ text: noReview.OriginalText })
-    const result = await isQuestionable({
-      text: comment.text,
-      ip: comment.source.ip,
-      browser: comment.source.browser,
-      referrer: comment.source.referrer,
-      author: comment.author,
-      createdOn: comment.createdOn,
-      modifiedOn: comment.modifiedOn,
-      testOnly: true
-    })
-    expect(result).toBe(false)
+  it('handles a no review recommendation', () => {
+    expect(normalizeModerationApiResponse({ data: noReview })).toBe(false)
   })
-  it('filters out spam', async () => {
-    const comment = makeFakeComment({
-      text: noReview.OriginalText,
-      author: 'viagra-test-123'
-    })
-    const result = await isQuestionable({
+  it('handles the lack of any recommendation', () => {
+    expect(normalizeModerationApiResponse({ data: noClassification })).toBe(
+      true
+    )
+  })
+  it('builds a valid Akismet API request', () => {
+    const comment = makeFakeComment()
+    const expected = {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      url: process.env.DM_SPAM_API_URL,
+      method: 'post',
+      data: qs.stringify({
+        blog: 'https://devmastery.com',
+        user_ip: comment.source.ip,
+        user_agent: comment.source.browser,
+        referrer: comment.source.referrer,
+        comment_type: 'comment',
+        comment_author: comment.author,
+        comment_content: comment.text,
+        comment_date_gmt: new Date(comment.createdOn).toISOString(),
+        comment_post_modified_gmt: new Date(comment.modifiedOn).toISOString(),
+        blog_lang: 'en',
+        is_test: true
+      })
+    }
+    const actual = buildAkismetApiCommand({
       text: comment.text,
       ip: comment.source.ip,
       browser: comment.source.browser,
@@ -62,8 +67,9 @@ describe('Is Questionable', () => {
       author: comment.author,
       createdOn: comment.createdOn,
       modifiedOn: comment.modifiedOn,
-      testOnly: true
+      testOnly: true,
+      querystring: qs
     })
-    expect(result).toBe(true)
+    expect(actual).toEqual(expected)
   })
 })

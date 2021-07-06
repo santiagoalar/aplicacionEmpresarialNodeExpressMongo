@@ -11,9 +11,7 @@ import makePatchComment from './patch-comment'
 import notFound from './not-found'
 
 const deleteComment = makeDeleteComment({ removeComment })
-const getComments = makeGetComments({
-  listComments
-})
+const getComments = makeGetComments({listComments})
 const postComment = makePostComment({ addComment })
 const patchComment = makePatchComment({ editComment })
 

@@ -44,3 +44,5 @@ To run in development mode where code is run by [babel-node](https://babeljs.io/
 ```bash
 npm run dev
 ```
+
+mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false
